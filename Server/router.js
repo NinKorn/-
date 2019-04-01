@@ -1,6 +1,7 @@
 //路由模块
 const express = require('express');
 const router = express.Router();
+const axios =require('axios');
 
 const mysql = require('mysql');
 const conn = mysql.createConnection({
@@ -12,6 +13,26 @@ const conn = mysql.createConnection({
 });
 
 // const Heros = require('./heros.js');
+//用户登录
+router.post('/user', (req, resl) => {
+    //获取用户code
+    let bloginfo = req.body;
+    console.log(bloginfo);
+    let data = {
+        'appid':'wx42229426ec94162d',
+        // wx42229426ec94162d
+        'secret':'00ASDqw33.k',
+        'js_codeb':bloginfo.code,
+        'grant_type':'authorization_code'
+    }
+    let url = 'https://api.weixin.qq.com/sns/jscode2session?'+'appid=wx42229426ec94162d&secret=00ASDqw33.k&js_codeb='+bloginfo.code+'&grant_type=authorization_code'
+    
+    axios.get(url).then(
+        res => {
+            console.log(res,111);
+        }
+    )
+});
 //查询所有文章
 router.get('/getblog', (req, resl) => {
     let sql = `select * from blog limit ${req.query.page},${req.query.size};select COUNT(*) 'cont' from blog`
@@ -64,9 +85,7 @@ router.post('/addblog', (req, resl) => {
 //根据id获取文章
 router.get('/getblog/:id', (req, resl) => {
     let idstr = req.params.id;
-    let sqlId = 'select * from heros WHERE id = ?';
-
-    // resl.send(id);
+    let sqlId = 'select * from blog WHERE id = ?';
     conn.query(sqlId, idstr, (err, res) => {
         if (err) return resl.send({
             status: 500,
