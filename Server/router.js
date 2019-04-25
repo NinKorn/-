@@ -1,7 +1,7 @@
 //路由模块
 const express = require('express');
 const router = express.Router();
-const axios =require('axios');
+const axios = require('axios');
 
 const mysql = require('mysql');
 const conn = mysql.createConnection({
@@ -12,30 +12,67 @@ const conn = mysql.createConnection({
     multipleStatements: true
 });
 
-// const Heros = require('./heros.js');
 //用户登录
-router.post('/user', (req, resl) => {
-    //获取用户code
-    let bloginfo = req.body;
-    console.log(bloginfo);
-    let data = {
-        'appid':'wx42229426ec94162d',
-        // wx42229426ec94162d
-        'secret':'00ASDqw33.k',
-        'js_codeb':bloginfo.code,
-        'grant_type':'authorization_code'
-    }
-    let url = 'https://api.weixin.qq.com/sns/jscode2session?'+'appid=wx42229426ec94162d&secret=00ASDqw33.k&js_codeb='+bloginfo.code+'&grant_type=authorization_code'
-    
-    axios.get(url).then(
-        res => {
-            console.log(res,111);
+router.get('/user', (req, resl) => {
+    console.log(req.query);
+    let sql = `SELECT * FROM user WHERE userName =? AND password =?`
+    let userName = [req.query.userName, req.query.password];
+    conn.query(sql, userName, (err, res) => {
+        console.log(res, 'aa');
+        console.log(res.length);
+        if (err) {
+            return resl.send({
+                status: 500,
+                msg: err.message,
+                data: null
+            });
+        } else if (res.length == 0) {
+            return resl.send({
+                status: 501,
+                msg: '用户名或密码输入不正确',
+                data: null
+            });
+        } else {
+
+            resl.send({
+                status: 200,
+                msg: '登陆成功',
+                data: res
+            });
         }
-    )
+    });
+});
+//用户注册
+router.post('/user', (req, resl) => {
+    let time = new Date();
+    let y = time.getFullYear();
+    let m = (time.getMonth() + 1).toString().padStart(2, '0');
+    let d = time.getDay().toString().padStart(2, '0');
+
+    let hh = time.getHours().toString().padStart(2, '0');
+    let mm = time.getMinutes().toString().padStart(2, '0');
+    let ss = time.getSeconds().toString().padStart(2, '0');
+    const overtime = y + '-' + m + '-' + d + ' ' + hh + ':' + mm + ':' + ss;
+    let userinfo = req.body;
+    userinfo.time = overtime;
+
+    let sqlStr = 'insert user set ?';
+    conn.query(sqlStr, userinfo, (err, res) => {
+        if (err) return resl.send({
+            status: 500,
+            msg: err.message,
+            data: null
+        });
+        resl.send({
+            status: 200,
+            msg: 'ok',
+            data: res
+        });
+    });
 });
 //查询所有文章
 router.get('/getblog', (req, resl) => {
-    let sql = `select * from blog limit ${req.query.page},${req.query.size};select COUNT(*) 'cont' from blog`
+    let sql = `select a.*,b.userName from blog as a inner JOIN user as b ON a.userid=b.userId limit ${req.query.page},${req.query.size};select COUNT(*) 'cont' from blog`
     let sqlCont = 'select COUNT(*) from blog'
     conn.query(sql, (err, res) => {
         if (err) return resl.send({
@@ -47,13 +84,14 @@ router.get('/getblog', (req, resl) => {
             status: 200,
             msg: 'ok',
             data: res[0],
-            totle:res[1][0].cont
+            totle: res[1][0].cont
         });
     });
 });
 
 //新增
 router.post('/addblog', (req, resl) => {
+    console.log(req,'aa');
     //获取时间
     let time = new Date();
     let y = time.getFullYear();
@@ -69,6 +107,7 @@ router.post('/addblog', (req, resl) => {
 
     let sqlStr = 'insert into blog set ?';
     conn.query(sqlStr, bloginfo, (err, res) => {
+        console.log(res,'bbb');
         if (err) return resl.send({
             status: 500,
             msg: err.message,
